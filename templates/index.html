@@ -46,15 +46,28 @@
         </header>
 
         <main>
-            <div class="items-container">
+            <div class="button-container">
+                <button class="export-pdf-button" id="exportPdfBtn">
+                    Export to PDF
+                </button>
+                <button class="refresh-button" id="refreshBtn">
+                    Refresh List
+                </button>
+                <button class="add-item-button" id="addItemBtn">
+                    Add Item
+                </button>
+            </div>
+
+            <div class="items-grid" id="itemsGrid">
                 <!-- Items will be added here dynamically -->
             </div>
 
-            <button id="addItemBtn" class="add-item-btn">Add Item</button>
-
-            <div class="slide-up-form">
-                <form id="addItemForm">
+            <div class="slide-up-form" id="addItemForm">
+                <div class="form-header">
                     <h2>Add New Item</h2>
+                    <button class="close-form" id="closeFormBtn">&times;</button>
+                </div>
+                <form>
                     <div class="form-group">
                         <label for="productImage">Product Image:</label>
                         <input type="file" id="productImage" name="product_image" accept="image/*" required>
