@@ -178,7 +178,7 @@ Use null for missing values. Remove units. For "<1g" use 0.5."""
             prompt = "What is the exact product name shown in this image? Return ONLY the name, no other text."
 
         response = openai.ChatCompletion.create(
-            model="gpt-4-vision-preview",
+            model="gpt-4o",
             messages=[{
                 "role": "user",
                 "content": [
@@ -531,7 +531,7 @@ def test_analysis():
                 'status': 'success',
                 'product_analysis': product_response,
                 'nutrition_analysis': nutrition_response,
-                'model_used': 'gpt-4-vision-preview'
+                'model_used': 'gpt-4o'
             })
 
         except Exception as e:
