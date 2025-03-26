@@ -2,17 +2,26 @@ services:
   - type: web
     name: grocery-tracker
     env: python
+    region: ohio
+    plan: free
     buildCommand: |
       python -m pip install --upgrade pip
-      python -m pip install wheel setuptools
-      python -m pip install -r requirements.txt
+      pip install -r requirements.txt
     startCommand: gunicorn app:app
     envVars:
       - key: PYTHON_VERSION
-        value: 3.11.0
+        value: 3.11.7
       - key: OPENAI_API_KEY
         sync: false
+      - key: FLASK_APP
+        value: app.py
+      - key: FLASK_ENV
+        value: production
+      - key: PYTHONUNBUFFERED
+        value: "true"
+      - key: SECRET_KEY
+        generateValue: true
     disk:
       name: uploads
-      mountPath: /static/uploads
+      mountPath: /opt/render/project/src/static/uploads
       sizeGB: 1 
