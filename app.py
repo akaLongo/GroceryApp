@@ -20,6 +20,7 @@ import logging
 from logging.handlers import RotatingFileHandler
 from functools import wraps
 from werkzeug.utils import secure_filename
+import sys
 
 # Load environment variables
 load_dotenv()
@@ -36,13 +37,8 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 if not os.path.exists('logs'):
     os.makedirs('logs')
 
-log_file = os.path.join('logs', 'grocery_app.log')
-handler = RotatingFileHandler(
-    log_file,
-    maxBytes=10000,
-    backupCount=3,
-    delay=True
-)
+# Configure logging to use stdout for Render
+handler = logging.StreamHandler(sys.stdout)
 handler.setFormatter(logging.Formatter(
     '[%(asctime)s] %(levelname)s in %(module)s: %(message)s'
 ))
