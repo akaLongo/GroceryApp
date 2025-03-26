@@ -91,7 +91,7 @@ CORS(app)
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=True)
     password = db.Column(db.String(128))
     role = db.Column(db.String(20), default='user')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -259,67 +259,84 @@ def token_required(f):
         return f(*args, **kwargs)
     return decorated
 
-@app.route('/api/auth/register', methods=['POST'])
+@app.route('/register', methods=['POST'])
 def register():
     try:
         data = request.get_json()
+        username = data.get('username')
+        password = data.get('password')
+        email = data.get('email')
         
-        if User.query.filter_by(username=data['username']).first():
+        if not username or not password:
+            return jsonify({'error': 'Username and password are required'}), 400
+            
+        if User.query.filter_by(username=username).first():
             return jsonify({'error': 'Username already exists'}), 400
             
-        if User.query.filter_by(email=data['email']).first():
+        if email and User.query.filter_by(email=email).first():
             return jsonify({'error': 'Email already exists'}), 400
             
         user = User(
-            username=data['username'],
-            email=data['email']
+            username=username,
+            email=email
         )
-        user.set_password(data['password'])
+        user.set_password(password)
         
         db.session.add(user)
         db.session.commit()
         
-        token = create_token(data['username'])
-        return jsonify({'token': token, 'message': 'User registered successfully'}), 201
+        token = create_token(username)
+        return jsonify({
+            'token': token,
+            'user': {
+                'username': username,
+                'email': email
+            },
+            'message': 'User registered successfully'
+        }), 201
         
     except Exception as e:
+        app.logger.error(f"Registration error: {str(e)}")
         db.session.rollback()
         return jsonify({'error': 'Registration failed'}), 500
 
-@app.route('/api/auth/login', methods=['POST'])
+@app.route('/login', methods=['POST'])
 def login():
     try:
         data = request.get_json()
-        user = User.query.filter_by(username=data['username']).first()
+        username = data.get('username')
+        password = data.get('password')
         
-        if user and user.check_password(data['password']):
-            session['user_id'] = user.id
-            session['username'] = user.username
-            
+        if not username or not password:
+            return jsonify({'error': 'Username and password are required'}), 400
+        
+        user = User.query.filter_by(username=username).first()
+        
+        if user and user.check_password(password):
             # Update last login time
             user.last_login = datetime.utcnow()
             db.session.commit()
             
-            token = create_token(data['username'])
+            token = create_token(username)
             return jsonify({
+                'token': token,
                 'user': {
                     'id': user.id,
                     'username': user.username,
                     'email': user.email,
                     'role': user.role
-                },
-                'token': token
-            })
-            
-        return jsonify({'error': 'Invalid credentials'}), 401
+                }
+            }), 200
+        
+        return jsonify({'error': 'Invalid username or password'}), 401
         
     except Exception as e:
-        db.session.rollback()
+        app.logger.error(f"Login error: {str(e)}")
         return jsonify({'error': 'Login failed'}), 500
 
-@app.route('/api/auth/logout', methods=['POST'])
+@app.route('/logout', methods=['POST'])
+@token_required
 def logout():
-    session.clear()
     return jsonify({'message': 'Logged out successfully'})
 
 @app.route('/api/items', methods=['GET'])
@@ -572,39 +589,6 @@ def test_analysis():
 @app.route('/test')
 def test_page():
     return render_template('test.html')
-
-@app.route('/register', methods=['POST'])
-def register_new():
-    data = request.get_json()
-    username = data.get('username')
-    password = data.get('password')
-    
-    if not username or not password:
-        return jsonify({'error': 'Username and password are required'}), 400
-        
-    if User.query.filter_by(username=username).first():
-        return jsonify({'error': 'Username already exists'}), 400
-        
-    new_user = User(username=username)
-    new_user.set_password(password)
-    db.session.add(new_user)
-    db.session.commit()
-    
-    token = create_token(username)
-    return jsonify({'token': token, 'message': 'User created successfully'}), 201
-
-@app.route('/login', methods=['POST'])
-def login_new():
-    data = request.get_json()
-    username = data.get('username')
-    password = data.get('password')
-    
-    user = User.query.filter_by(username=username).first()
-    if user and user.check_password(password):
-        token = create_token(username)
-        return jsonify({'token': token}), 200
-    
-    return jsonify({'error': 'Invalid username or password'}), 401
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))

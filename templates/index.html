@@ -3,86 +3,81 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Grocery List</title>
-    <link rel="stylesheet" href="/static/css/style.css">
+    <title>Grocery List App</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
-    <!-- Auth Section -->
-    <div id="loginSection" class="auth-section">
+    <!-- Authentication Section -->
+    <div class="auth-section">
         <div class="auth-container">
-            <h2>Login</h2>
+            <h1>Grocery List App</h1>
+            
+            <!-- Login Form -->
             <form id="loginForm" class="auth-form">
-                <input type="text" id="loginUsername" placeholder="Username" required>
-                <input type="password" id="loginPassword" placeholder="Password" required>
+                <h2>Login</h2>
+                <input type="text" id="username" placeholder="Username" required>
+                <input type="password" id="password" placeholder="Password" required>
                 <button type="submit">Login</button>
+                <p>Don't have an account? <a href="#" onclick="toggleForms()">Register</a></p>
             </form>
-            <p class="auth-switch">Don't have an account? <button onclick="showRegisterForm()">Register</button></p>
-        </div>
-    </div>
 
-    <div id="registerSection" class="auth-section" style="display: none;">
-        <div class="auth-container">
-            <h2>Register</h2>
-            <form id="registerForm" class="auth-form">
-                <input type="text" id="registerUsername" placeholder="Username" required>
-                <input type="email" id="registerEmail" placeholder="Email" required>
-                <input type="password" id="registerPassword" placeholder="Password" required>
+            <!-- Registration Form -->
+            <form id="registerForm" class="auth-form" style="display: none;">
+                <h2>Register</h2>
+                <input type="text" id="regUsername" placeholder="Username" required>
+                <input type="email" id="regEmail" placeholder="Email">
+                <input type="password" id="regPassword" placeholder="Password" required>
                 <button type="submit">Register</button>
+                <p>Already have an account? <a href="#" onclick="toggleForms()">Login</a></p>
             </form>
-            <p class="auth-switch">Already have an account? <button onclick="showLoginForm()">Login</button></p>
         </div>
     </div>
 
     <!-- Main App Section -->
-    <div id="itemsSection" style="display: none;">
-        <!-- Header with user info -->
+    <div class="app-section" style="display: none;">
         <header>
-            <h1>Your Grocery<br>List</h1>
-            <div class="user-info">
-                <div class="user-welcome">Welcome, Anthony!</div>
+            <div class="header-content">
+                <h1>Your Grocery List</h1>
+                <p id="welcomeMessage"></p>
+                <p id="totalCost">Total: $0.00</p>
                 <button id="logoutBtn" class="logout-btn">Logout</button>
             </div>
-            <div class="total-cost">$0.00</div>
         </header>
 
-        <!-- Main content -->
         <main>
-            <button class="export-pdf-button" onclick="exportToPDF()">Export to PDF</button>
-            <button class="add-item-button">+ Add Item</button>
-            <button class="refresh-button" onclick="loadItems()">↻ Refresh List</button>
-            <div class="items-grid" id="itemsContainer">
-                <!-- Items will be dynamically added here -->
+            <div class="items-container">
+                <!-- Items will be added here dynamically -->
+            </div>
+
+            <button id="addItemBtn" class="add-item-btn">Add Item</button>
+
+            <div class="slide-up-form">
+                <form id="addItemForm">
+                    <h2>Add New Item</h2>
+                    <div class="form-group">
+                        <label for="productImage">Product Image:</label>
+                        <input type="file" id="productImage" name="product_image" accept="image/*" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="nutritionImage">Nutrition Label Image:</label>
+                        <input type="file" id="nutritionImage" name="nutrition_image" accept="image/*" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="price">Price:</label>
+                        <input type="number" id="price" name="price" step="0.01" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="quantity">Quantity:</label>
+                        <input type="number" id="quantity" name="quantity" min="1" value="1" required>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit">Add Item</button>
+                        <button type="button" class="cancel-btn">Cancel</button>
+                    </div>
+                </form>
             </div>
         </main>
-
-        <!-- Slide-up Form -->
-        <div class="form-overlay"></div>
-        <div class="slide-up-form">
-            <div class="form-header">
-                <h3>Add New Item</h3>
-                <button class="close-form">&times;</button>
-            </div>
-            <form id="addItemForm">
-                <div class="form-group">
-                    <label for="price">Price</label>
-                    <input type="number" id="price" name="price" step="0.01" required>
-                </div>
-                <div class="form-group">
-                    <label for="quantity">Quantity</label>
-                    <input type="number" id="quantity" name="quantity" required>
-                </div>
-                <div class="form-group">
-                    <label for="product_image">Product Image</label>
-                    <input type="file" id="product_image" name="product_image" accept="image/*" required>
-                </div>
-                <div class="form-group">
-                    <label for="nutrition_image">Nutrition Label Image</label>
-                    <input type="file" id="nutrition_image" name="nutrition_image" accept="image/*" required>
-                </div>
-                <button type="submit" class="submit-button">Add Item</button>
-            </form>
-        </div>
     </div>
 
     <!-- Loading Overlay -->
@@ -97,6 +92,21 @@
     <!-- Notification -->
     <div id="notification" class="notification" style="display: none;"></div>
 
-    <script src="/static/js/main.js"></script>
+    <script>
+        function toggleForms() {
+            const loginForm = document.getElementById('loginForm');
+            const registerForm = document.getElementById('registerForm');
+            
+            if (loginForm.style.display === 'none') {
+                loginForm.style.display = 'block';
+                registerForm.style.display = 'none';
+            } else {
+                loginForm.style.display = 'none';
+                registerForm.style.display = 'block';
+            }
+        }
+    </script>
+    <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 </body>
 </html> 
