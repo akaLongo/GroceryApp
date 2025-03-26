@@ -21,7 +21,7 @@ from logging.handlers import RotatingFileHandler
 from functools import wraps
 from werkzeug.utils import secure_filename
 import sys
-from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
+import jwt
 
 # Load environment variables
 load_dotenv()
@@ -68,7 +68,6 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-key-123')
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 app.config['ALLOWED_EXTENSIONS'] = {'png', 'jpg', 'jpeg'}
-app.config['JWT_SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key')
 
 # Security headers
 @app.after_request
@@ -87,7 +86,6 @@ openai.api_key = os.getenv('OPENAI_API_KEY')
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 CORS(app)
-jwt = JWTManager(app)
 
 # Models
 class User(db.Model):
@@ -234,6 +232,33 @@ Use null for missing values. Remove units. For "<1g" use 0.5."""
 def index():
     return render_template('index.html')
 
+def create_token(username):
+    """Create a JWT token."""
+    payload = {
+        'username': username,
+        'exp': datetime.utcnow() + timedelta(days=1)
+    }
+    return jwt.encode(payload, app.config['SECRET_KEY'], algorithm='HS256')
+
+def token_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = request.headers.get('Authorization')
+        if not token:
+            return jsonify({'error': 'Token is missing'}), 401
+        try:
+            token = token.split(' ')[1]  # Remove 'Bearer ' prefix
+            data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
+            current_user = User.query.filter_by(username=data['username']).first()
+            if not current_user:
+                return jsonify({'error': 'Invalid token'}), 401
+        except jwt.ExpiredSignatureError:
+            return jsonify({'error': 'Token has expired'}), 401
+        except jwt.InvalidTokenError:
+            return jsonify({'error': 'Invalid token'}), 401
+        return f(*args, **kwargs)
+    return decorated
+
 @app.route('/api/auth/register', methods=['POST'])
 def register():
     try:
@@ -254,7 +279,8 @@ def register():
         db.session.add(user)
         db.session.commit()
         
-        return jsonify({'message': 'User registered successfully'}), 201
+        token = create_token(data['username'])
+        return jsonify({'token': token, 'message': 'User registered successfully'}), 201
         
     except Exception as e:
         db.session.rollback()
@@ -274,13 +300,15 @@ def login():
             user.last_login = datetime.utcnow()
             db.session.commit()
             
+            token = create_token(data['username'])
             return jsonify({
                 'user': {
                     'id': user.id,
                     'username': user.username,
                     'email': user.email,
                     'role': user.role
-                }
+                },
+                'token': token
             })
             
         return jsonify({'error': 'Invalid credentials'}), 401
@@ -294,16 +322,8 @@ def logout():
     session.clear()
     return jsonify({'message': 'Logged out successfully'})
 
-def login_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if 'user_id' not in session:
-            return jsonify({'error': 'Please log in'}), 401
-        return f(*args, **kwargs)
-    return decorated_function
-
 @app.route('/api/items', methods=['GET'])
-@login_required
+@token_required
 def get_items():
     items = GroceryItem.query.filter_by(user_id=session['user_id']).all()
     return jsonify([{
@@ -326,7 +346,7 @@ def get_items():
     } for item in items])
 
 @app.route('/api/items', methods=['POST'])
-@login_required
+@token_required
 def add_item():
     try:
         app.logger.info("Starting add_item process")
@@ -433,7 +453,7 @@ def add_item():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/items/<int:item_id>', methods=['DELETE'])
-@login_required
+@token_required
 def delete_item(item_id):
     item = GroceryItem.query.filter_by(id=item_id, user_id=session['user_id']).first_or_404()
     
@@ -570,7 +590,8 @@ def register_new():
     db.session.add(new_user)
     db.session.commit()
     
-    return jsonify({'message': 'User created successfully'}), 201
+    token = create_token(username)
+    return jsonify({'token': token, 'message': 'User created successfully'}), 201
 
 @app.route('/login', methods=['POST'])
 def login_new():
@@ -580,8 +601,8 @@ def login_new():
     
     user = User.query.filter_by(username=username).first()
     if user and user.check_password(password):
-        access_token = create_access_token(identity=username)
-        return jsonify({'access_token': access_token}), 200
+        token = create_token(username)
+        return jsonify({'token': token}), 200
     
     return jsonify({'error': 'Invalid username or password'}), 401
 
