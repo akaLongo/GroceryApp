@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, session
+from flask import Flask, render_template, request, jsonify, session, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_cors import CORS
@@ -21,6 +21,8 @@ from logging.handlers import RotatingFileHandler
 from functools import wraps
 from werkzeug.utils import secure_filename
 import sys
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
+from passlib.hash import argon2
 
 # Load environment variables
 load_dotenv()
@@ -40,7 +42,7 @@ if not os.path.exists('logs'):
 # Configure logging to use stdout for Render
 handler = logging.StreamHandler(sys.stdout)
 handler.setFormatter(logging.Formatter(
-    '[%(asctime)s] %(levelname)s in %(module)s: %(message)s'
+    '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 ))
 app.logger.addHandler(handler)
 app.logger.setLevel(logging.INFO)
@@ -67,6 +69,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-key-123')
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 app.config['ALLOWED_EXTENSIONS'] = {'png', 'jpg', 'jpeg'}
+app.config['JWT_SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key')
 
 # Security headers
 @app.after_request
@@ -85,23 +88,24 @@ client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 CORS(app)
+jwt = JWTManager(app)
 
 # Models
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
-    password_hash = db.Column(db.String(128))
+    password = db.Column(db.String(128))
     role = db.Column(db.String(20), default='user')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     last_login = db.Column(db.DateTime)
     items = db.relationship('GroceryItem', backref='user', lazy=True)
 
     def set_password(self, password):
-        self.password_hash = generate_password_hash(password)
+        self.password = argon2.hash(password)
 
     def check_password(self, password):
-        return check_password_hash(self.password_hash, password)
+        return argon2.verify(password, self.password)
 
 class GroceryItem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -549,6 +553,38 @@ def test_analysis():
 @app.route('/test')
 def test_page():
     return render_template('test.html')
+
+@app.route('/register', methods=['POST'])
+def register_new():
+    data = request.get_json()
+    username = data.get('username')
+    password = data.get('password')
+    
+    if not username or not password:
+        return jsonify({'error': 'Username and password are required'}), 400
+        
+    if User.query.filter_by(username=username).first():
+        return jsonify({'error': 'Username already exists'}), 400
+        
+    hashed_password = argon2.hash(password)
+    new_user = User(username=username, password=hashed_password)
+    db.session.add(new_user)
+    db.session.commit()
+    
+    return jsonify({'message': 'User created successfully'}), 201
+
+@app.route('/login', methods=['POST'])
+def login_new():
+    data = request.get_json()
+    username = data.get('username')
+    password = data.get('password')
+    
+    user = User.query.filter_by(username=username).first()
+    if user and argon2.verify(password, user.password):
+        access_token = create_access_token(identity=username)
+        return jsonify({'access_token': access_token}), 200
+    
+    return jsonify({'error': 'Invalid username or password'}), 401
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
