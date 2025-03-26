@@ -7,7 +7,7 @@ from flask_limiter.util import get_remote_address
 from werkzeug.security import generate_password_hash, check_password_hash
 from dotenv import load_dotenv
 import os
-from openai import OpenAI
+import openai
 import base64
 from PIL import Image
 import io
@@ -82,7 +82,7 @@ def add_security_headers(response):
     return response
 
 # Initialize OpenAI client
-client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+openai.api_key = os.getenv('OPENAI_API_KEY')
 
 # Initialize extensions
 db = SQLAlchemy(app)
@@ -177,8 +177,8 @@ Use null for missing values. Remove units. For "<1g" use 0.5."""
         else:
             prompt = "What is the exact product name shown in this image? Return ONLY the name, no other text."
 
-        response = client.chat.completions.create(
-            model="gpt-4o",
+        response = openai.ChatCompletion.create(
+            model="gpt-4-vision-preview",
             messages=[{
                 "role": "user",
                 "content": [
@@ -531,7 +531,7 @@ def test_analysis():
                 'status': 'success',
                 'product_analysis': product_response,
                 'nutrition_analysis': nutrition_response,
-                'model_used': 'gpt-4o'
+                'model_used': 'gpt-4-vision-preview'
             })
 
         except Exception as e:
