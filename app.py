@@ -22,7 +22,6 @@ from functools import wraps
 from werkzeug.utils import secure_filename
 import sys
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
-from passlib.hash import argon2
 
 # Load environment variables
 load_dotenv()
@@ -102,10 +101,10 @@ class User(db.Model):
     items = db.relationship('GroceryItem', backref='user', lazy=True)
 
     def set_password(self, password):
-        self.password = argon2.hash(password)
+        self.password = generate_password_hash(password)
 
     def check_password(self, password):
-        return argon2.verify(password, self.password)
+        return check_password_hash(self.password, password)
 
 class GroceryItem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -566,8 +565,8 @@ def register_new():
     if User.query.filter_by(username=username).first():
         return jsonify({'error': 'Username already exists'}), 400
         
-    hashed_password = argon2.hash(password)
-    new_user = User(username=username, password=hashed_password)
+    new_user = User(username=username)
+    new_user.set_password(password)
     db.session.add(new_user)
     db.session.commit()
     
@@ -580,7 +579,7 @@ def login_new():
     password = data.get('password')
     
     user = User.query.filter_by(username=username).first()
-    if user and argon2.verify(password, user.password):
+    if user and user.check_password(password):
         access_token = create_access_token(identity=username)
         return jsonify({'access_token': access_token}), 200
     
