@@ -1,27 +1,19 @@
 services:
   - type: web
-    name: grocery-tracker
+    name: grocery-app
     env: python
-    region: ohio
-    plan: free
-    buildCommand: |
-      python -m pip install --upgrade pip
-      pip install --no-build-isolation -r requirements.txt
+    buildCommand: pip install -r requirements.txt
     startCommand: gunicorn app:app
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.7
-      - key: OPENAI_API_KEY
-        sync: false
-      - key: FLASK_APP
-        value: app.py
       - key: FLASK_ENV
         value: production
-      - key: PYTHONUNBUFFERED
-        value: "true"
-      - key: SECRET_KEY
-        generateValue: true
+    domains:
+      - groceryapp-3pz1.onrender.com
+    healthCheckPath: /
+    autoDeploy: true
     disk:
       name: uploads
-      mountPath: /opt/render/project/src/static/uploads
+      mountPath: /app/static/uploads
       sizeGB: 1 

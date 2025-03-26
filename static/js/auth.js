@@ -1,152 +1,164 @@
-// Authentication state
+// Auth state
 let currentUser = null;
-let authToken = localStorage.getItem('authToken');
+let authToken = null;
 
-// Event listeners for auth forms
+// DOM Elements
+const authSection = document.querySelector('.auth-section');
+const appSection = document.querySelector('.app-section');
+const loginForm = document.getElementById('loginForm');
+const registerForm = document.getElementById('registerForm');
+const welcomeMessage = document.getElementById('welcomeMessage');
+
+// Check if we're on HTTPS
+const protocol = window.location.protocol;
+const baseUrl = `${protocol}//${window.location.host}`;
+
+// Event Listeners
 document.addEventListener('DOMContentLoaded', () => {
-    const loginForm = document.getElementById('loginForm');
-    const registerForm = document.getElementById('registerForm');
-    const logoutBtn = document.getElementById('logoutBtn');
-
-    if (loginForm) {
-        loginForm.addEventListener('submit', handleLogin);
-    }
-    if (registerForm) {
-        registerForm.addEventListener('submit', handleRegister);
-    }
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', handleLogout);
-    }
-
-    // Check if user is already logged in
     checkAuthState();
+    setupAuthListeners();
 });
 
-async function handleLogin(e) {
-    e.preventDefault();
-    const username = document.getElementById('username').value;
-    const password = document.getElementById('password').value;
-
-    try {
-        const response = await fetch('/login', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ username, password })
-        });
-
-        const data = await response.json();
-
-        if (response.ok) {
-            // Store token and user data
-            localStorage.setItem('authToken', data.token);
-            currentUser = data.user;
-            authToken = data.token;
-            
-            // Update UI
-            document.querySelector('.auth-section').style.display = 'none';
-            document.querySelector('.app-section').style.display = 'block';
-            document.getElementById('welcomeMessage').textContent = `Welcome, ${currentUser.username}!`;
-        } else {
-            alert(data.error || 'Login failed');
-        }
-    } catch (error) {
-        console.error('Login error:', error);
-        alert('Login failed. Please try again.');
-    }
-}
-
-async function handleRegister(e) {
-    e.preventDefault();
-    const username = document.getElementById('regUsername').value;
-    const password = document.getElementById('regPassword').value;
-    const email = document.getElementById('regEmail').value;
-
-    try {
-        const response = await fetch('/register', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ username, password, email })
-        });
-
-        const data = await response.json();
-
-        if (response.ok) {
-            // Store token and user data
-            localStorage.setItem('authToken', data.token);
-            currentUser = data.user;
-            authToken = data.token;
-            
-            // Update UI
-            document.querySelector('.auth-section').style.display = 'none';
-            document.querySelector('.app-section').style.display = 'block';
-            document.getElementById('welcomeMessage').textContent = `Welcome, ${currentUser.username}!`;
-        } else {
-            alert(data.error || 'Registration failed');
-        }
-    } catch (error) {
-        console.error('Registration error:', error);
-        alert('Registration failed. Please try again.');
-    }
-}
-
-async function handleLogout() {
-    try {
-        const response = await fetch('/logout', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${authToken}`,
-                'Content-Type': 'application/json',
-            }
-        });
-
-        if (response.ok) {
-            // Clear auth state
-            localStorage.removeItem('authToken');
-            currentUser = null;
-            authToken = null;
-            
-            // Update UI
-            document.querySelector('.auth-section').style.display = 'block';
-            document.querySelector('.app-section').style.display = 'none';
-        }
-    } catch (error) {
-        console.error('Logout error:', error);
-    }
-}
-
-async function checkAuthState() {
-    if (authToken) {
+function setupAuthListeners() {
+    // Login form submission
+    loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+        
         try {
-            // Verify token is valid by making a request
-            const response = await fetch('/api/items', {
+            const response = await fetch(`${baseUrl}/api/auth/login`, {
+                method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${authToken}`
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ username, password })
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                authToken = data.token;
+                currentUser = data.user;
+                localStorage.setItem('authToken', authToken);
+                showApp();
+                showNotification('Login successful!', 'success');
+            } else {
+                throw new Error(data.message || 'Login failed');
+            }
+        } catch (error) {
+            console.error('Login error:', error);
+            showNotification(error.message, 'error');
+        }
+    });
+
+    // Register form submission
+    registerForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const username = document.getElementById('regUsername').value;
+        const email = document.getElementById('regEmail').value;
+        const password = document.getElementById('regPassword').value;
+        
+        try {
+            const response = await fetch(`${baseUrl}/api/auth/register`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ username, email, password })
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                showNotification('Registration successful! Please log in.', 'success');
+                toggleForms(); // Switch to login form
+                // Clear registration form
+                registerForm.reset();
+            } else {
+                throw new Error(data.message || 'Registration failed');
+            }
+        } catch (error) {
+            console.error('Registration error:', error);
+            showNotification(error.message, 'error');
+        }
+    });
+
+    // Logout button
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', logout);
+    }
+}
+
+// Check authentication state
+async function checkAuthState() {
+    const token = localStorage.getItem('authToken');
+    if (token) {
+        try {
+            const response = await fetch(`${baseUrl}/api/auth/verify`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
                 }
             });
-
+            
             if (response.ok) {
-                // Token is valid, show app section
-                document.querySelector('.auth-section').style.display = 'none';
-                document.querySelector('.app-section').style.display = 'block';
+                const data = await response.json();
+                authToken = token;
+                currentUser = data.user;
+                showApp();
             } else {
-                // Token is invalid, show auth section
-                localStorage.removeItem('authToken');
-                document.querySelector('.auth-section').style.display = 'block';
-                document.querySelector('.app-section').style.display = 'none';
+                throw new Error('Invalid token');
             }
         } catch (error) {
             console.error('Auth check error:', error);
-            document.querySelector('.auth-section').style.display = 'block';
-            document.querySelector('.app-section').style.display = 'none';
+            localStorage.removeItem('authToken');
+            showAuth();
         }
     } else {
-        // No token, show auth section
-        document.querySelector('.auth-section').style.display = 'block';
-        document.querySelector('.app-section').style.display = 'none';
+        showAuth();
+    }
+}
+
+// Show authentication section
+function showAuth() {
+    authSection.style.display = 'flex';
+    appSection.style.display = 'none';
+}
+
+// Show main app section
+function showApp() {
+    authSection.style.display = 'none';
+    appSection.style.display = 'block';
+    if (currentUser) {
+        welcomeMessage.textContent = `Welcome, ${currentUser.username}!`;
+    }
+}
+
+// Logout function
+async function logout() {
+    try {
+        const response = await fetch(`${baseUrl}/api/auth/logout`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${authToken}`
+            }
+        });
+        
+        if (response.ok) {
+            localStorage.removeItem('authToken');
+            authToken = null;
+            currentUser = null;
+            showAuth();
+            showNotification('Logged out successfully', 'success');
+        } else {
+            throw new Error('Logout failed');
+        }
+    } catch (error) {
+        console.error('Logout error:', error);
+        showNotification(error.message, 'error');
     }
 }
 
@@ -154,6 +166,10 @@ async function checkAuthState() {
 function getAuthHeaders() {
     return {
         'Authorization': `Bearer ${authToken}`,
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/json'
     };
-} 
+}
+
+// Export necessary functions and variables
+window.getAuthHeaders = getAuthHeaders;
+window.currentUser = currentUser; 

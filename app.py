@@ -29,44 +29,33 @@ load_dotenv()
 # Initialize Flask app
 app = Flask(__name__)
 
-# Update the upload folder configuration
-UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'uploads')
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-
-# Configure logging
-if not os.path.exists('logs'):
-    os.makedirs('logs')
-
-# Configure logging to use stdout for Render
-handler = logging.StreamHandler(sys.stdout)
-handler.setFormatter(logging.Formatter(
-    '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-))
-app.logger.addHandler(handler)
+# Configure logging to stdout for Render
+stream_handler = logging.StreamHandler(sys.stdout)
+stream_handler.setLevel(logging.INFO)
+app.logger.addHandler(stream_handler)
 app.logger.setLevel(logging.INFO)
 
-# Add ProxyFix middleware
+# Configure app for production
+app.config['PREFERRED_URL_SCHEME'] = 'https'
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
-# Initialize rate limiter
-limiter = Limiter(
-    app=app,
-    key_func=get_remote_address,
-    default_limits=["200 per day", "50 per hour"]
-)
+# Configure upload folder
+UPLOAD_FOLDER = os.path.join(os.getcwd(), 'static', 'uploads')
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 
-# Database configuration
+# Configure database
 if os.environ.get('DATABASE_URL'):
-    # Production database (PostgreSQL)
+    # Using PostgreSQL on Render
     app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL').replace('postgres://', 'postgresql://')
 else:
-    # Development database (SQLite)
+    # Using SQLite locally
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///grocery.db'
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-key-123')
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key-here')
 app.config['ALLOWED_EXTENSIONS'] = {'png', 'jpg', 'jpeg'}
 
 # Security headers
