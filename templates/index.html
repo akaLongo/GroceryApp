@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grocery List</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+    <!-- Auth Section -->
+    <div id="loginSection" class="auth-section">
+        <div class="auth-container">
+            <h2>Login</h2>
+            <form id="loginForm" class="auth-form">
+                <input type="text" id="loginUsername" placeholder="Username" required>
+                <input type="password" id="loginPassword" placeholder="Password" required>
+                <button type="submit">Login</button>
+            </form>
+            <p class="auth-switch">Don't have an account? <button onclick="showRegisterForm()">Register</button></p>
+        </div>
+    </div>
+
+    <div id="registerSection" class="auth-section" style="display: none;">
+        <div class="auth-container">
+            <h2>Register</h2>
+            <form id="registerForm" class="auth-form">
+                <input type="text" id="registerUsername" placeholder="Username" required>
+                <input type="email" id="registerEmail" placeholder="Email" required>
+                <input type="password" id="registerPassword" placeholder="Password" required>
+                <button type="submit">Register</button>
+            </form>
+            <p class="auth-switch">Already have an account? <button onclick="showLoginForm()">Login</button></p>
+        </div>
+    </div>
+
+    <!-- Main App Section -->
+    <div id="itemsSection" style="display: none;">
+        <!-- Header with user info -->
+        <header>
+            <h1>Your Grocery<br>List</h1>
+            <div class="user-info">
+                <div class="user-welcome">Welcome, Anthony!</div>
+                <button id="logoutBtn" class="logout-btn">Logout</button>
+            </div>
+            <div class="total-cost">$0.00</div>
+        </header>
+
+        <!-- Main content -->
+        <main>
+            <button class="export-pdf-button" onclick="exportToPDF()">Export to PDF</button>
+            <button class="add-item-button">+ Add Item</button>
+            <button class="refresh-button" onclick="loadItems()">↻ Refresh List</button>
+            <div class="items-grid" id="itemsContainer">
+                <!-- Items will be dynamically added here -->
+            </div>
+        </main>
+
+        <!-- Slide-up Form -->
+        <div class="form-overlay"></div>
+        <div class="slide-up-form">
+            <div class="form-header">
+                <h3>Add New Item</h3>
+                <button class="close-form">&times;</button>
+            </div>
+            <form id="addItemForm">
+                <div class="form-group">
+                    <label for="price">Price</label>
+                    <input type="number" id="price" name="price" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label for="quantity">Quantity</label>
+                    <input type="number" id="quantity" name="quantity" required>
+                </div>
+                <div class="form-group">
+                    <label for="product_image">Product Image</label>
+                    <input type="file" id="product_image" name="product_image" accept="image/*" required>
+                </div>
+                <div class="form-group">
+                    <label for="nutrition_image">Nutrition Label Image</label>
+                    <input type="file" id="nutrition_image" name="nutrition_image" accept="image/*" required>
+                </div>
+                <button type="submit" class="submit-button">Add Item</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" style="display: none;">
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <p>Analyzing images with AI...</p>
+            <p class="loading-detail">This may take a few moments</p>
+        </div>
+    </div>
+
+    <!-- Notification -->
+    <div id="notification" class="notification" style="display: none;"></div>
+
+    <script src="/static/js/main.js"></script>
+</body>
+</html> 

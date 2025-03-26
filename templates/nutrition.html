@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nutrition Summary - Grocery Cart Tracker</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Nutrition Summary</h1>
+            <a href="/" class="btn secondary">Back to Cart</a>
+        </header>
+
+        <div class="nutrition-summary">
+            <!-- Total Macros Card -->
+            <div class="summary-card macro-summary">
+                <h2>Total Macronutrients</h2>
+                <div class="macro-grid">
+                    <div class="macro-item">
+                        <div class="label">Calories</div>
+                        <div class="value" id="totalCalories">0</div>
+                    </div>
+                    <div class="macro-item">
+                        <div class="label">Protein</div>
+                        <div class="value" id="totalProtein">0g</div>
+                    </div>
+                    <div class="macro-item">
+                        <div class="label">Carbs</div>
+                        <div class="value" id="totalCarbs">0g</div>
+                    </div>
+                    <div class="macro-item">
+                        <div class="label">Fat</div>
+                        <div class="value" id="totalFat">0g</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Additional Nutrients Card -->
+            <div class="summary-card nutrients-summary">
+                <h2>Additional Nutrients</h2>
+                <div class="nutrients-grid">
+                    <div class="nutrient-item">
+                        <div class="label">Fiber</div>
+                        <div class="value" id="totalFiber">0g</div>
+                    </div>
+                    <div class="nutrient-item">
+                        <div class="label">Sugar</div>
+                        <div class="value" id="totalSugar">0g</div>
+                    </div>
+                    <div class="nutrient-item">
+                        <div class="label">Sodium</div>
+                        <div class="value" id="totalSodium">0mg</div>
+                    </div>
+                    <div class="nutrient-item">
+                        <div class="label">Cholesterol</div>
+                        <div class="value" id="totalCholesterol">0mg</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Items with Nutrition Info -->
+            <div class="items-nutrition">
+                <h2>Items Breakdown</h2>
+                <div id="nutrition-items-list" class="nutrition-items-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/nutrition.js"></script>
+</body>
+</html> 

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Image Analysis</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        pre {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test Image Analysis</h1>
+    
+    <form id="testForm">
+        <div class="form-group">
+            <label for="product_image">Product Image:</label>
+            <input type="file" id="product_image" name="product_image" accept="image/*" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="nutrition_image">Nutrition Label:</label>
+            <input type="file" id="nutrition_image" name="nutrition_image" accept="image/*" required>
+        </div>
+        
+        <button type="submit">Test Analysis</button>
+    </form>
+
+    <h2>Response:</h2>
+    <pre id="response">Results will appear here...</pre>
+
+    <script>
+        document.getElementById('testForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData();
+            formData.append('product_image', document.getElementById('product_image').files[0]);
+            formData.append('nutrition_image', document.getElementById('nutrition_image').files[0]);
+            
+            try {
+                const response = await fetch('/test_analysis', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                document.getElementById('response').textContent = JSON.stringify(result, null, 2);
+            } catch (error) {
+                document.getElementById('response').textContent = 'Error: ' + error.message;
+            }
+        });
+    </script>
+</body>
+</html> 
