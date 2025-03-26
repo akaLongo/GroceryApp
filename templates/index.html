@@ -62,30 +62,31 @@
                 <!-- Items will be added here dynamically -->
             </div>
 
+            <!-- Add Item Form -->
             <div class="slide-up-form" id="addItemForm">
                 <div class="form-header">
                     <h2>Add New Item</h2>
-                    <button class="close-form" id="closeFormBtn">&times;</button>
+                    <button type="button" class="close-form" id="closeFormBtn">&times;</button>
                 </div>
-                <form>
+                <form id="addItemForm">
                     <div class="form-group">
-                        <label for="productImage">Product Image:</label>
+                        <label for="productImage">Product Image</label>
                         <input type="file" id="productImage" name="product_image" accept="image/*" required>
                     </div>
                     <div class="form-group">
-                        <label for="nutritionImage">Nutrition Label Image:</label>
+                        <label for="nutritionImage">Nutrition Label Image</label>
                         <input type="file" id="nutritionImage" name="nutrition_image" accept="image/*" required>
                     </div>
                     <div class="form-group">
-                        <label for="price">Price:</label>
-                        <input type="number" id="price" name="price" step="0.01" required>
+                        <label for="price">Price ($)</label>
+                        <input type="number" id="price" name="price" step="0.01" min="0.01" required>
                     </div>
                     <div class="form-group">
-                        <label for="quantity">Quantity:</label>
+                        <label for="quantity">Quantity</label>
                         <input type="number" id="quantity" name="quantity" min="1" value="1" required>
                     </div>
                     <div class="form-actions">
-                        <button type="submit">Add Item</button>
+                        <button type="submit" class="submit-btn">Add Item</button>
                         <button type="button" class="cancel-btn">Cancel</button>
                     </div>
                 </form>
