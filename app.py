@@ -51,9 +51,15 @@ if os.environ.get('FLASK_ENV') == 'production':
     # Using PostgreSQL on Render
     db_url = os.environ.get('DATABASE_URL')
     if db_url:
-        app.config['SQLALCHEMY_DATABASE_URI'] = db_url.replace('postgres://', 'postgresql://')
+        # Handle both postgres:// and postgresql:// for compatibility
+        if db_url.startswith('postgres://'):
+            db_url = db_url.replace('postgres://', 'postgresql://', 1)
+        app.config['SQLALCHEMY_DATABASE_URI'] = db_url
+        app.logger.info("Using PostgreSQL database")
     else:
-        raise ValueError("DATABASE_URL environment variable not set in production")
+        app.logger.warning("DATABASE_URL not set, falling back to SQLite")
+        sqlite_path = os.path.join(os.getcwd(), 'grocery.db')
+        app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{sqlite_path}'
 else:
     # Using SQLite locally
     sqlite_path = os.path.join(os.getcwd(), 'grocery.db')
