@@ -47,12 +47,18 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 
 # Configure database
-if os.environ.get('DATABASE_URL'):
+if os.environ.get('FLASK_ENV') == 'production':
     # Using PostgreSQL on Render
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL').replace('postgres://', 'postgresql://')
+    db_url = os.environ.get('DATABASE_URL')
+    if db_url:
+        app.config['SQLALCHEMY_DATABASE_URI'] = db_url.replace('postgres://', 'postgresql://')
+    else:
+        raise ValueError("DATABASE_URL environment variable not set in production")
 else:
     # Using SQLite locally
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///grocery.db'
+    sqlite_path = os.path.join(os.getcwd(), 'grocery.db')
+    app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{sqlite_path}'
+    app.logger.info(f"Using SQLite database at {sqlite_path}")
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key-here')
@@ -221,9 +227,10 @@ Use null for missing values. Remove units. For "<1g" use 0.5."""
 def index():
     return render_template('index.html')
 
-def create_token(username):
+def create_token(user_id, username):
     """Create a JWT token."""
     payload = {
+        'user_id': user_id,
         'username': username,
         'exp': datetime.utcnow() + timedelta(days=1)
     }
@@ -238,9 +245,11 @@ def token_required(f):
         try:
             token = token.split(' ')[1]  # Remove 'Bearer ' prefix
             data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
-            current_user = User.query.filter_by(username=data['username']).first()
+            current_user = User.query.filter_by(id=data['user_id']).first()
             if not current_user:
                 return jsonify({'error': 'Invalid token'}), 401
+            # Store user info in request context
+            request.current_user = current_user
         except jwt.ExpiredSignatureError:
             return jsonify({'error': 'Token has expired'}), 401
         except jwt.InvalidTokenError:
@@ -248,7 +257,7 @@ def token_required(f):
         return f(*args, **kwargs)
     return decorated
 
-@app.route('/register', methods=['POST'])
+@app.route('/api/auth/register', methods=['POST'])
 def register():
     try:
         data = request.get_json()
@@ -265,23 +274,20 @@ def register():
         if email and User.query.filter_by(email=email).first():
             return jsonify({'error': 'Email already exists'}), 400
             
-        user = User(
-            username=username,
-            email=email
-        )
+        user = User(username=username, email=email)
         user.set_password(password)
         
         db.session.add(user)
         db.session.commit()
         
-        token = create_token(username)
+        token = create_token(user.id, username)
         return jsonify({
             'token': token,
             'user': {
+                'id': user.id,
                 'username': username,
                 'email': email
-            },
-            'message': 'User registered successfully'
+            }
         }), 201
         
     except Exception as e:
@@ -289,7 +295,7 @@ def register():
         db.session.rollback()
         return jsonify({'error': 'Registration failed'}), 500
 
-@app.route('/login', methods=['POST'])
+@app.route('/api/auth/login', methods=['POST'])
 def login():
     try:
         data = request.get_json()
@@ -306,7 +312,7 @@ def login():
             user.last_login = datetime.utcnow()
             db.session.commit()
             
-            token = create_token(username)
+            token = create_token(user.id, username)
             return jsonify({
                 'token': token,
                 'user': {
@@ -323,7 +329,19 @@ def login():
         app.logger.error(f"Login error: {str(e)}")
         return jsonify({'error': 'Login failed'}), 500
 
-@app.route('/logout', methods=['POST'])
+@app.route('/api/auth/verify', methods=['GET'])
+@token_required
+def verify_token():
+    return jsonify({
+        'user': {
+            'id': request.current_user.id,
+            'username': request.current_user.username,
+            'email': request.current_user.email,
+            'role': request.current_user.role
+        }
+    })
+
+@app.route('/api/auth/logout', methods=['POST'])
 @token_required
 def logout():
     return jsonify({'message': 'Logged out successfully'})

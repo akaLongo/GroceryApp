@@ -8,6 +8,7 @@ const appSection = document.querySelector('.app-section');
 const loginForm = document.getElementById('loginForm');
 const registerForm = document.getElementById('registerForm');
 const welcomeMessage = document.getElementById('welcomeMessage');
+const logoutBtn = document.getElementById('logoutBtn');
 
 // Check if we're on HTTPS
 const protocol = window.location.protocol;
@@ -23,6 +24,7 @@ function setupAuthListeners() {
     // Login form submission
     loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+        console.log('Login form submitted');
         
         const username = document.getElementById('username').value;
         const password = document.getElementById('password').value;
@@ -45,7 +47,7 @@ function setupAuthListeners() {
                 showApp();
                 showNotification('Login successful!', 'success');
             } else {
-                throw new Error(data.message || 'Login failed');
+                throw new Error(data.error || 'Login failed');
             }
         } catch (error) {
             console.error('Login error:', error);
@@ -56,6 +58,7 @@ function setupAuthListeners() {
     // Register form submission
     registerForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+        console.log('Register form submitted');
         
         const username = document.getElementById('regUsername').value;
         const email = document.getElementById('regEmail').value;
@@ -73,12 +76,13 @@ function setupAuthListeners() {
             const data = await response.json();
             
             if (response.ok) {
-                showNotification('Registration successful! Please log in.', 'success');
-                toggleForms(); // Switch to login form
-                // Clear registration form
-                registerForm.reset();
+                authToken = data.token;
+                currentUser = data.user;
+                localStorage.setItem('authToken', authToken);
+                showApp();
+                showNotification('Registration successful!', 'success');
             } else {
-                throw new Error(data.message || 'Registration failed');
+                throw new Error(data.error || 'Registration failed');
             }
         } catch (error) {
             console.error('Registration error:', error);
@@ -87,7 +91,6 @@ function setupAuthListeners() {
     });
 
     // Logout button
-    const logoutBtn = document.getElementById('logoutBtn');
     if (logoutBtn) {
         logoutBtn.addEventListener('click', logout);
     }
@@ -126,6 +129,10 @@ async function checkAuthState() {
 function showAuth() {
     authSection.style.display = 'flex';
     appSection.style.display = 'none';
+    // Clear any stored auth data
+    localStorage.removeItem('authToken');
+    authToken = null;
+    currentUser = null;
 }
 
 // Show main app section
@@ -148,9 +155,6 @@ async function logout() {
         });
         
         if (response.ok) {
-            localStorage.removeItem('authToken');
-            authToken = null;
-            currentUser = null;
             showAuth();
             showNotification('Logged out successfully', 'success');
         } else {
@@ -168,6 +172,18 @@ function getAuthHeaders() {
         'Authorization': `Bearer ${authToken}`,
         'Content-Type': 'application/json'
     };
+}
+
+// Show notification
+function showNotification(message, type = 'success') {
+    const notification = document.getElementById('notification');
+    notification.textContent = message;
+    notification.className = `notification ${type}`;
+    notification.style.display = 'block';
+    
+    setTimeout(() => {
+        notification.style.display = 'none';
+    }, 3000);
 }
 
 // Export necessary functions and variables
