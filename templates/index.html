@@ -62,13 +62,16 @@
                 <!-- Items will be added here dynamically -->
             </div>
 
+            <!-- Form Overlay -->
+            <div class="form-overlay" id="formOverlay"></div>
+
             <!-- Add Item Form -->
             <div class="slide-up-form" id="addItemForm">
                 <div class="form-header">
                     <h2>Add New Item</h2>
                     <button type="button" class="close-form" id="closeFormBtn">&times;</button>
                 </div>
-                <form id="addItemForm">
+                <form id="itemForm">
                     <div class="form-group">
                         <label for="productImage">Product Image</label>
                         <input type="file" id="productImage" name="product_image" accept="image/*" required>
