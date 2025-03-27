@@ -9,7 +9,7 @@
 </head>
 <body>
     <!-- Authentication Section -->
-    <div class="auth-section">
+    <div class="auth-section" id="authSection">
         <div class="auth-container">
             <h1>Grocery List App</h1>
             
@@ -35,7 +35,7 @@
     </div>
 
     <!-- Main App Section -->
-    <div class="app-section" style="display: none;">
+    <div class="app-section" id="appSection" style="display: none;">
         <header>
             <div class="header-content">
                 <h1>Your Grocery List</h1>
@@ -47,15 +47,9 @@
 
         <main>
             <div class="button-container">
-                <button class="export-pdf-button" id="exportPdfBtn">
-                    Export to PDF
-                </button>
-                <button class="refresh-button" id="refreshBtn">
-                    Refresh List
-                </button>
-                <button class="add-item-button" id="addItemBtn">
-                    Add Item
-                </button>
+                <button id="exportPdfBtn" class="export-pdf-button">Export to PDF</button>
+                <button id="refreshBtn" class="refresh-button">Refresh List</button>
+                <button id="addItemBtn" class="add-item-button">Add Item</button>
             </div>
 
             <div class="items-grid" id="itemsGrid">
@@ -95,19 +89,19 @@
                 </form>
             </div>
         </main>
-    </div>
 
-    <!-- Loading Overlay -->
-    <div id="loadingOverlay" style="display: none;">
-        <div class="loading-content">
-            <div class="spinner"></div>
-            <p>Analyzing images with AI...</p>
-            <p class="loading-detail">This may take a few moments</p>
+        <!-- Loading Overlay -->
+        <div id="loadingOverlay" style="display: none;">
+            <div class="loading-content">
+                <div class="spinner"></div>
+                <p>Analyzing images with AI...</p>
+                <p class="loading-detail">This may take a few moments</p>
+            </div>
         </div>
-    </div>
 
-    <!-- Notification -->
-    <div id="notification" class="notification" style="display: none;"></div>
+        <!-- Notification -->
+        <div id="notification" class="notification" style="display: none;"></div>
+    </div>
 
     <script>
         function toggleForms() {
