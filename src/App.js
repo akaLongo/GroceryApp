@@ -140,7 +140,6 @@ function App() {
   const [currentListName, setCurrentListName] = useState('My List');
   const [listMenuAnchor, setListMenuAnchor] = useState(null);
   const [saveListDialogOpen, setSaveListDialogOpen] = useState(false);
-  const [newListName, setNewListName] = useState('');
   const [savedLists, setSavedLists] = useState([]);
 
   // Load saved lists on startup
